@@ -1,0 +1,68 @@
+**SUMMARY - Diskusi ERP System dari Awal sampai Sekarang:**
+
+---
+
+## **PHASE 1: Core System Setup**
+✅ Built full-stack ERP dengan React + Node.js + Supabase PostgreSQL
+✅ Implemented 18 menu items covering all modules (Products, Customers, Suppliers, Inventory, Sales, Purchasing, Warehouse, Returns, Invoices, Payments, Reports, AR/AP Aging, Savings, Waste, Users, Settings)
+✅ Migrated from self-hosted PostgreSQL to Supabase
+
+---
+
+## **PHASE 2: UI/UX Enhancements**
+✅ Upgraded theme to modern glassmorphism with vibrant gradients
+✅ Created dynamic theme system with 9 color schemes (Cyber, Sunset, Forest, Midnight, Volcano, Ocean, Aurora, Sakura, Light)
+✅ Theme persists via localStorage
+✅ Light theme with black text for readability
+
+---
+
+## **PHASE 3: Component Architecture**
+✅ Created reusable Dialog component for all create/add operations
+✅ Created reusable Table component with pagination (20 rows/page, First/Previous/Next/Last navigation)
+✅ Applied to all modules with tables
+
+---
+
+## **PHASE 4: Database Enhancements**
+✅ Added `customer_code` column to customers table (unique identifier)
+✅ Added `type` column to products table (product classification)
+
+---
+
+## **PHASE 5: Sales Order with Plafond Control (NEW)**
+
+### **Plafond Management:**
+- Customer punya limit kredit (misal 10 juta)
+- Plafond_used = total SO yang belum dibayar
+- Threshold warning di 95% (5% buffer)
+- Saat plafond_used >= 100% → SO blocked (tidak bisa create)
+- Saat invoice dibayar → plafond_used berkurang, SO bisa dibuat lagi
+
+### **B2B vs B2C Pricing:**
+- **B2C**: Pakai harga default dari master product
+- **B2B**: Harga bisa custom per customer
+  - Disimpan di table `customer_product_pricing` (customer_id, product_id, custom_price)
+  - Sales set manual saat create SO (no approval needed)
+  - Pilihan: **Overwrite** (update master pricing) atau **Keep in SO only** (hanya di SO line item)
+  - Next SO untuk customer B2B yang sama → Harga custom sudah tersimpan
+
+### **Sales Order Flow:**
+1. Sales pilih customer (B2B/B2C)
+2. Cek plafond status → Show warning badge jika >95%
+3. Jika plafond full → Block SO creation
+4. Saat add product ke SO:
+   - B2C → Auto-fill harga default
+   - B2B → Auto-fill custom price (jika ada), atau default (jika belum ada)
+5. Sales bisa override harga di SO line item
+6. Saat SO confirmed → Opsi save custom price ke master atau keep di SO saja
+
+---
+
+## **Database Tables Needed:**
+1. `customer_product_pricing` (NEW) - untuk B2B custom pricing
+2. Existing tables sudah cukup untuk plafond logic
+
+---
+
+**Status:** Ready untuk implementation Phase 5 (Plafond + B2B Pricing)

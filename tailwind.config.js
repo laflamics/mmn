@@ -1,0 +1,10 @@
+export default {
+  content: [
+    './index.html',
+    './src/client/**/*.{js,jsx}',
+  ],
+  theme: {
+    extend: {},
+  },
+  plugins: [],
+};
