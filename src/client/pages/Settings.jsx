@@ -4,6 +4,7 @@ import { cacheManager } from '../lib/cache';
 import { useTheme } from '../context/ThemeContext';
 import { uploadDocument, deleteDocument } from '../lib/storage';
 import DataImportDialog from '../components/DataImportDialog';
+import AppUpdater from '../components/AppUpdater';
 
 export default function Settings() {
   const [activeTab, setActiveTab] = useState('general');
@@ -259,6 +260,7 @@ export default function Settings() {
     { id: 'security', label: 'Security', icon: '🔒' },
     { id: 'notifications', label: 'Notifications', icon: '🔔' },
     { id: 'import', label: 'Import Data', icon: '📥' },
+    { id: 'update', label: 'Update', icon: '🔄' },
   ];
 
   const getTextColor = () => {
@@ -670,6 +672,13 @@ export default function Settings() {
           )}
 
           {/* Import Data */}
+          {activeTab === 'update' && (
+            <div className="glass rounded-xl p-6">
+              <h2 className={`text-xl font-bold ${getTextColor()} mb-6`}>Update Aplikasi</h2>
+              <AppUpdater />
+            </div>
+          )}
+
           {activeTab === 'import' && (
             <div className="glass rounded-xl p-6">
               <h2 className={`text-xl font-bold ${getTextColor()} mb-6`}>Import Data</h2>

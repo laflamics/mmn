@@ -1,6 +1,7 @@
 'use strict';
 
-const { app, BrowserWindow, utilityProcess } = require('electron');
+const { app, BrowserWindow, ipcMain, utilityProcess } = require('electron');
+const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const http = require('http');
 const dotenv = require('dotenv');
@@ -15,6 +16,70 @@ const envPath = isDev
   : path.join(app.getAppPath(), '.env');
 dotenv.config({ path: envPath });
 
+// ── Auto-updater config ────────────────────────────────────────────────────
+autoUpdater.autoDownload = false;          // manual download (user confirms)
+autoUpdater.autoInstallOnAppQuit = false;  // we control install timing
+
+function setupAutoUpdater() {
+  autoUpdater.on('checking-for-update', () => {
+    sendUpdateStatus({ status: 'checking' });
+  });
+
+  autoUpdater.on('update-available', (info) => {
+    sendUpdateStatus({ status: 'available', version: info.version, releaseNotes: info.releaseNotes });
+  });
+
+  autoUpdater.on('update-not-available', () => {
+    sendUpdateStatus({ status: 'latest' });
+  });
+
+  autoUpdater.on('download-progress', (progress) => {
+    sendUpdateStatus({ status: 'downloading', percent: Math.round(progress.percent) });
+  });
+
+  autoUpdater.on('update-downloaded', (info) => {
+    sendUpdateStatus({ status: 'ready', version: info.version });
+  });
+
+  autoUpdater.on('error', (err) => {
+    sendUpdateStatus({ status: 'error', message: err.message });
+  });
+}
+
+function sendUpdateStatus(data) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('update-status', data);
+  }
+}
+
+// ── IPC handlers ──────────────────────────────────────────────────────────
+ipcMain.handle('get-version', () => app.getVersion());
+
+ipcMain.handle('check-for-update', async () => {
+  if (isDev) {
+    sendUpdateStatus({ status: 'error', message: 'Update check disabled in dev mode' });
+    return;
+  }
+  try {
+    await autoUpdater.checkForUpdates();
+  } catch (err) {
+    sendUpdateStatus({ status: 'error', message: err.message });
+  }
+});
+
+ipcMain.handle('download-update', async () => {
+  try {
+    await autoUpdater.downloadUpdate();
+  } catch (err) {
+    sendUpdateStatus({ status: 'error', message: err.message });
+  }
+});
+
+ipcMain.handle('install-update', () => {
+  autoUpdater.quitAndInstall(false, true);
+});
+
+// ── Express server ────────────────────────────────────────────────────────
 function startExpressServer() {
   const serverPath = app.isPackaged
     ? path.join(app.getAppPath(), 'src', 'server', 'index.js')
@@ -42,7 +107,7 @@ function waitForServer(maxAttempts = 40) {
       });
       req.end();
     };
-    setTimeout(check, 1000); // initial delay before first check
+    setTimeout(check, 1000);
   });
 }
 
@@ -55,6 +120,7 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
+      preload: path.join(__dirname, 'preload.cjs'),
     },
     show: false,
   });
@@ -62,11 +128,19 @@ function createWindow() {
   const url = isDev ? 'http://localhost:3000/mmn/' : 'http://localhost:5000';
   mainWindow.loadURL(url);
 
-  mainWindow.once('ready-to-show', () => mainWindow.show());
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.show();
+    // Check for update silently on startup (after 3s delay)
+    if (!isDev) {
+      setTimeout(() => autoUpdater.checkForUpdates().catch(() => {}), 3000);
+    }
+  });
+
   mainWindow.on('closed', () => { mainWindow = null; });
 }
 
 app.whenReady().then(async () => {
+  setupAutoUpdater();
   if (!isDev) {
     startExpressServer();
     await waitForServer().catch((err) => console.error('[electron]', err.message));
