@@ -1,7 +1,8 @@
 import { supabase } from './supabase';
+import { memoize, cacheManager } from './cache';
 
 // Products
-export const getProducts = async () => {
+const _getProducts = async () => {
   const { data, error } = await supabase
     .from('products')
     .select('*')
@@ -10,6 +11,8 @@ export const getProducts = async () => {
   if (error) throw error;
   return data;
 };
+
+export const getProducts = memoize(_getProducts, 10 * 60 * 1000); // 10 min cache
 
 export const createProduct = async (product) => {
   const { data, error } = await supabase
@@ -17,11 +20,12 @@ export const createProduct = async (product) => {
     .insert([product])
     .select();
   if (error) throw error;
+  cacheManager.clearAll(); // Clear ALL cache to prevent stale data
   return data[0];
 };
 
 // Customers
-export const getCustomers = async () => {
+const _getCustomers = async () => {
   const { data, error } = await supabase
     .from('customers')
     .select('*')
@@ -30,6 +34,8 @@ export const getCustomers = async () => {
   if (error) throw error;
   return data;
 };
+
+export const getCustomers = memoize(_getCustomers, 10 * 60 * 1000); // 10 min cache
 
 export const createCustomer = async (customer) => {
   const { data, error } = await supabase
@@ -37,11 +43,12 @@ export const createCustomer = async (customer) => {
     .insert([customer])
     .select();
   if (error) throw error;
+  cacheManager.clearAll(); // Clear ALL cache to prevent stale data
   return data[0];
 };
 
 // Suppliers
-export const getSuppliers = async () => {
+const _getSuppliers = async () => {
   const { data, error } = await supabase
     .from('suppliers')
     .select('*')
@@ -51,29 +58,110 @@ export const getSuppliers = async () => {
   return data;
 };
 
+export const getSuppliers = memoize(_getSuppliers, 10 * 60 * 1000); // 10 min cache
+
 export const createSupplier = async (supplier) => {
   const { data, error } = await supabase
     .from('suppliers')
     .insert([supplier])
     .select();
   if (error) throw error;
+  cacheManager.clearAll(); // Clear ALL cache to prevent stale data
   return data[0];
 };
 
-// Sales Orders
-export const getSalesOrders = async () => {
-  const { data, error } = await supabase
+// Sales Orders - with pagination (simplified)
+export const getSalesOrders = async (page = 1, pageSize = 50) => {
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  // Get paginated sales orders with minimal joins
+  const { data: orders, error, count } = await supabase
     .from('sales_orders')
     .select(`
-      *,
-      customers(name)
-    `)
-    .order('order_date', { ascending: false });
+      id,
+      order_number,
+      order_date,
+      total_amount,
+      tax_amount,
+      discount_amount,
+      status,
+      payment_type,
+      created_by,
+      customer_id,
+      customers(id, name, plafond_limit, plafond_used),
+      sales_order_items(id, quantity, product_id, unit_price)
+    `, { count: 'exact' })
+    .order('order_date', { ascending: false })
+    .range(from, to);
+  
   if (error) throw error;
-  return data.map(order => ({
-    ...order,
-    customer_name: order.customers.name
-  }));
+
+  // Extract unique IDs
+  const productIds = [...new Set(orders.flatMap(o => o.sales_order_items?.map(i => i.product_id) || []))];
+  const userIds = [...new Set(orders.map(o => o.created_by).filter(Boolean))];
+
+  // Parallel batch fetch with minimal data
+  const [productsResult, usersResult, inventoryResult] = await Promise.all([
+    productIds.length > 0 
+      ? supabase.from('products').select('id, name, uom').in('id', productIds)
+      : Promise.resolve({ data: [] }),
+    userIds.length > 0 
+      ? supabase.from('users').select('id, name').in('id', userIds)
+      : Promise.resolve({ data: [] }),
+    productIds.length > 0
+      ? supabase.from('inventory').select('product_id, quantity_available').in('product_id', productIds)
+      : Promise.resolve({ data: [] })
+  ]);
+
+  // Build lookup maps
+  const productsMap = {};
+  productsResult.data?.forEach(p => { productsMap[p.id] = p; });
+
+  const usersMap = {};
+  usersResult.data?.forEach(u => { usersMap[u.id] = u.name; });
+
+  const inventoryMap = {};
+  inventoryResult.data?.forEach(inv => { inventoryMap[inv.product_id] = inv.quantity_available || 0; });
+
+  // Map data efficiently
+  const mappedOrders = orders.map(order => {
+    let orderHasStockIssue = false;
+    
+    const itemsWithProducts = (order.sales_order_items || []).map(item => {
+      const product = productsMap[item.product_id] || {};
+      const availableStock = inventoryMap[item.product_id] || 0;
+      
+      let itemStockStatus = 'in_stock';
+      if (availableStock <= 0) {
+        itemStockStatus = 'backorder';
+        orderHasStockIssue = true;
+      } else if (availableStock < item.quantity) {
+        itemStockStatus = 'partial';
+        orderHasStockIssue = true;
+      }
+      
+      return {
+        ...item,
+        product_name: product.name || 'Unknown',
+        uom: product.uom || '',
+        available_stock: availableStock,
+        stock_status: itemStockStatus
+      };
+    });
+
+    return {
+      ...order,
+      customer_name: order.customers?.name || 'Unknown',
+      plafond_limit: order.customers?.plafond_limit || 0,
+      plafond_used: order.customers?.plafond_used || 0,
+      created_by_name: usersMap[order.created_by] || order.created_by || 'Unknown',
+      sales_order_items: itemsWithProducts,
+      stock_status: orderHasStockIssue ? 'partial' : 'in_stock'
+    };
+  });
+
+  return { data: mappedOrders, count, page, pageSize };
 };
 
 export const createSalesOrder = async (order) => {
@@ -85,20 +173,46 @@ export const createSalesOrder = async (order) => {
   return data[0];
 };
 
-// Invoices
-export const getInvoices = async () => {
-  const { data, error } = await supabase
+// Invoices - with pagination
+export const getInvoices = async (page = 1, pageSize = 50) => {
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  const { data, error, count } = await supabase
     .from('invoices')
     .select(`
-      *,
-      customers(name)
-    `)
-    .order('invoice_date', { ascending: false });
+      id,
+      invoice_number,
+      invoice_date,
+      due_date,
+      status,
+      total_amount,
+      paid_amount,
+      customer_id,
+      sales_order_id,
+      sales_orders(id, customer_id)
+    `, { count: 'exact' })
+    .order('invoice_date', { ascending: false })
+    .range(from, to);
+  
   if (error) throw error;
-  return data.map(invoice => ({
+
+  // Batch fetch customer names
+  const customerIds = [...new Set(data.map(inv => inv.sales_orders?.customer_id).filter(Boolean))];
+  
+  const customersResult = customerIds.length > 0
+    ? await supabase.from('customers').select('id, name').in('id', customerIds)
+    : { data: [] };
+
+  const customersMap = {};
+  customersResult.data?.forEach(c => { customersMap[c.id] = c.name; });
+
+  const mappedInvoices = data.map(invoice => ({
     ...invoice,
-    customer_name: invoice.customers.name
+    customer_name: customersMap[invoice.sales_orders?.customer_id] || 'Unknown'
   }));
+
+  return { data: mappedInvoices, count, page, pageSize };
 };
 
 export const createInvoice = async (invoice) => {
@@ -194,7 +308,7 @@ export const saveCustomerProductPrice = async (customerId, productId, customPric
         customer_id: customerId,
         product_id: productId,
         custom_price: customPrice,
-        updated_at: new Date().toISOString()
+        updated_at: new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' })).toISOString()
       }, {
         onConflict: 'customer_id,product_id'
       })
@@ -302,3 +416,158 @@ export const reducePlafondUsed = async (customerId, invoiceAmount) => {
   if (error) throw error;
   return data[0];
 };
+
+// B2C/B2B Pricing - Get applicable price untuk customer + product
+export const getApplicablePrice = async (customerId, productId) => {
+  try {
+    // Fetch customer info
+    const { data: customer, error: custError } = await supabase
+      .from('customers')
+      .select('customer_type, pricing_tier')
+      .eq('id', customerId)
+      .single();
+
+    if (custError) throw custError;
+
+    // Fetch product info
+    const { data: product, error: prodError } = await supabase
+      .from('products')
+      .select('b2c_locco_price_zak, b2c_franco_price_zak, b2c_cash, b2c_top_30, b2b_default_price, weight')
+      .eq('id', productId)
+      .single();
+
+    if (prodError) throw prodError;
+
+    // B2C pricing - return all variants
+    if (customer.customer_type === 'B2C') {
+      return {
+        type: 'B2C',
+        variants: {
+          locco_zak: product.b2c_locco_price_zak,
+          franco_zak: product.b2c_franco_price_zak,
+          cash: product.b2c_cash,
+          top_30: product.b2c_top_30
+        },
+        weight: product.weight || 30
+      };
+    }
+
+    // B2B pricing - check custom price first
+    const { data: customPrice } = await supabase
+      .from('customer_product_pricing')
+      .select('custom_price')
+      .eq('customer_id', customerId)
+      .eq('product_id', productId)
+      .single();
+
+    if (customPrice) {
+      return {
+        type: 'B2B_CUSTOM',
+        price: customPrice.custom_price,
+        tier: customer.pricing_tier
+      };
+    }
+
+    // Fallback to B2B default price
+    return {
+      type: 'B2B_DEFAULT',
+      price: product.b2b_default_price,
+      tier: customer.pricing_tier
+    };
+  } catch (error) {
+    console.error('Error getting applicable price:', error);
+    throw error;
+  }
+};
+
+// B2C/B2B Pricing - Calculate unit price based on delivery type and unit type
+export const calculateUnitPrice = (basePrice, unitType, weight = 30) => {
+  if (unitType === 'ZAK') {
+    return basePrice;
+  } else if (unitType === 'KG') {
+    return basePrice / weight;
+  }
+  return basePrice;
+};
+
+// B2C/B2B Pricing - Calculate total from quantity and unit price
+export const calculateTotal = (quantity, unitPrice) => {
+  return quantity * unitPrice;
+};
+
+// B2C/B2B Pricing - Calculate unit price from total and quantity
+export const calculateUnitPriceFromTotal = (total, quantity) => {
+  if (quantity === 0) return 0;
+  return total / quantity;
+};
+
+// Delivery Notes - with pagination
+export const getDeliveryNotes = async (page = 1, pageSize = 50) => {
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  const { data, error, count } = await supabase
+    .from('delivery_notes')
+    .select(`
+      id,
+      dn_number,
+      delivery_date,
+      driver_name,
+      vehicle_number,
+      status,
+      sales_order_id,
+      sales_orders(id, order_number, customer_id),
+      delivery_note_items(id, quantity, product_id)
+    `, { count: 'exact' })
+    .order('delivery_date', { ascending: false })
+    .range(from, to);
+  
+  if (error) throw error;
+
+  // Batch fetch customers and products
+  const customerIds = [...new Set(data.map(dn => dn.sales_orders?.customer_id).filter(Boolean))];
+  const productIds = [...new Set(data.flatMap(dn => dn.delivery_note_items?.map(i => i.product_id) || []))];
+
+  const [customersResult, productsResult] = await Promise.all([
+    customerIds.length > 0
+      ? supabase.from('customers').select('id, name').in('id', customerIds)
+      : Promise.resolve({ data: [] }),
+    productIds.length > 0
+      ? supabase.from('products').select('id, name, uom').in('id', productIds)
+      : Promise.resolve({ data: [] })
+  ]);
+
+  const customersMap = {};
+  customersResult.data?.forEach(c => { customersMap[c.id] = c.name; });
+
+  const productsMap = {};
+  productsResult.data?.forEach(p => { productsMap[p.id] = p; });
+
+  const mappedDNs = data.map(dn => {
+    const itemsWithProducts = (dn.delivery_note_items || []).map(item => ({
+      ...item,
+      product_name: productsMap[item.product_id]?.name || 'Unknown',
+      uom: productsMap[item.product_id]?.uom || ''
+    }));
+
+    return {
+      ...dn,
+      order_number: dn.sales_orders?.order_number || 'Unknown',
+      customer_name: customersMap[dn.sales_orders?.customer_id] || 'Unknown',
+      delivery_note_items: itemsWithProducts
+    };
+  });
+
+  return { data: mappedDNs, count, page, pageSize };
+};
+
+export const createDeliveryNote = async (dn) => {
+  const { data, error } = await supabase
+    .from('delivery_notes')
+    .insert([dn])
+    .select();
+  if (error) throw error;
+  return data[0];
+};
+
+

@@ -54,10 +54,33 @@ router.post('/', async (req, res) => {
 // Update product
 router.put('/:id', async (req, res) => {
   try {
-    const { name, description, category, unit_price, cost_price } = req.body;
+    const {
+      name,
+      description,
+      category,
+      unit_price,
+      cost_price,
+      b2c_locco_price_zak,
+      b2c_franco_price_zak,
+      b2c_cash,
+      b2c_top_30,
+      b2b_default_price
+    } = req.body;
+
     const { data, error } = await supabase
       .from('products')
-      .update({ name, description, category, unit_price, cost_price })
+      .update({
+        name,
+        description,
+        category,
+        unit_price,
+        cost_price,
+        b2c_locco_price_zak,
+        b2c_franco_price_zak,
+        b2c_cash,
+        b2c_top_30,
+        b2b_default_price
+      })
       .eq('id', req.params.id)
       .select();
 

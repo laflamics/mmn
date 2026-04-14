@@ -1,9 +1,17 @@
 import { useState } from 'react';
+import { formatDate, formatCurrency } from '../lib/formatters';
 import Dialog from '../components/Dialog';
+import FilterBar from '../components/FilterBar';
 
 export default function Returns() {
   const [returns, setReturns] = useState([]);
   const [showDialog, setShowDialog] = useState(false);
+  const [pageSize, setPageSize] = useState(20);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [dateFilter, setDateFilter] = useState('all');
+  const [customerTypeFilter, setCustomerTypeFilter] = useState('all');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   return (
     <div>
@@ -16,6 +24,22 @@ export default function Returns() {
           + Create Return
         </button>
       </div>
+
+      <FilterBar
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        dateFilter={dateFilter}
+        setDateFilter={setDateFilter}
+        customerTypeFilter={customerTypeFilter}
+        setCustomerTypeFilter={setCustomerTypeFilter}
+        pageSize={pageSize}
+        setPageSize={setPageSize}
+        startDate={startDate}
+        setStartDate={setStartDate}
+        endDate={endDate}
+        setEndDate={setEndDate}
+        searchPlaceholder="Return # or Customer"
+      />
 
       <Dialog
         isOpen={showDialog}
@@ -75,8 +99,8 @@ export default function Returns() {
                 <tr key={ret.id} className="border-b border-slate-700 hover:bg-white/5 transition-colors">
                   <td className="px-6 py-4 text-sm font-medium text-slate-200">{ret.return_number}</td>
                   <td className="px-6 py-4 text-sm text-slate-400">{ret.customer_name}</td>
-                  <td className="px-6 py-4 text-sm text-slate-400">{new Date(ret.date).toLocaleDateString()}</td>
-                  <td className="px-6 py-4 text-sm text-slate-200">${ret.amount}</td>
+                  <td className="px-6 py-4 text-sm text-slate-400">{formatDate(ret.date)}</td>
+                  <td className="px-6 py-4 text-sm text-slate-200">{formatCurrency(ret.amount)}</td>
                   <td className="px-6 py-4 text-sm">
                     <span className="px-3 py-1 rounded-full text-xs font-semibold bg-blue-500/30 text-blue-200">
                       {ret.status}

@@ -6,3 +6,8 @@ dist/
 *.log
 .vscode/
 .idea/
+srcbackup/
+majalahabg/
+datamaster/
+masterdata/
+release/

@@ -1,0 +1,7 @@
+-- Add missing columns to purchase_orders table
+ALTER TABLE purchase_orders
+ADD COLUMN IF NOT EXISTS tax_amount DECIMAL(15, 2) DEFAULT 0,
+ADD COLUMN IF NOT EXISTS discount_amount DECIMAL(15, 2) DEFAULT 0,
+ADD COLUMN IF NOT EXISTS notes TEXT,
+ADD COLUMN IF NOT EXISTS payment_type VARCHAR(50) DEFAULT 'COD',
+ADD COLUMN IF NOT EXISTS top_days INTEGER DEFAULT 30;

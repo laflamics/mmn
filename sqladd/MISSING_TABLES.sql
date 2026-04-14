@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS warehouse_deliveries (
 CREATE TABLE IF NOT EXISTS waste_records (
   id BIGSERIAL PRIMARY KEY,
   product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
-  quantity INTEGER NOT NULL,
+  quantity NUMERIC(10,2) NOT NULL,
   waste_value DECIMAL(15, 2),
   reason VARCHAR(255),
   waste_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -70,7 +70,7 @@ CREATE TABLE IF NOT EXISTS sales_order_items (
   id BIGSERIAL PRIMARY KEY,
   sales_order_id BIGINT NOT NULL REFERENCES sales_orders(id) ON DELETE CASCADE,
   product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
-  quantity INTEGER NOT NULL,
+  quantity NUMERIC(10,2) NOT NULL,
   unit_price DECIMAL(12, 2),
   total_price DECIMAL(15, 2),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -81,7 +81,7 @@ CREATE TABLE IF NOT EXISTS purchase_order_items (
   id BIGSERIAL PRIMARY KEY,
   purchase_order_id BIGINT NOT NULL REFERENCES purchase_orders(id) ON DELETE CASCADE,
   product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
-  quantity INTEGER NOT NULL,
+  quantity NUMERIC(10,2) NOT NULL,
   unit_price DECIMAL(12, 2),
   total_price DECIMAL(15, 2),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -92,7 +92,7 @@ CREATE TABLE IF NOT EXISTS invoice_items (
   id BIGSERIAL PRIMARY KEY,
   invoice_id BIGINT NOT NULL REFERENCES invoices(id) ON DELETE CASCADE,
   product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
-  quantity INTEGER NOT NULL,
+  quantity NUMERIC(10,2) NOT NULL,
   unit_price DECIMAL(12, 2),
   total_price DECIMAL(15, 2),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -120,6 +120,25 @@ ALTER TABLE sales_order_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE purchase_order_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE invoice_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE activity_logs ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Authenticated users can read returns" ON returns;
+DROP POLICY IF EXISTS "Authenticated users can create returns" ON returns;
+DROP POLICY IF EXISTS "Authenticated users can read warehouses" ON warehouses;
+DROP POLICY IF EXISTS "Authenticated users can read warehouse deliveries" ON warehouse_deliveries;
+DROP POLICY IF EXISTS "Authenticated users can create warehouse deliveries" ON warehouse_deliveries;
+DROP POLICY IF EXISTS "Authenticated users can read waste records" ON waste_records;
+DROP POLICY IF EXISTS "Authenticated users can create waste records" ON waste_records;
+DROP POLICY IF EXISTS "Authenticated users can read petty cash" ON petty_cash;
+DROP POLICY IF EXISTS "Authenticated users can create petty cash" ON petty_cash;
+DROP POLICY IF EXISTS "Authenticated users can read sales order items" ON sales_order_items;
+DROP POLICY IF EXISTS "Authenticated users can create sales order items" ON sales_order_items;
+DROP POLICY IF EXISTS "Authenticated users can read purchase order items" ON purchase_order_items;
+DROP POLICY IF EXISTS "Authenticated users can create purchase order items" ON purchase_order_items;
+DROP POLICY IF EXISTS "Authenticated users can read invoice items" ON invoice_items;
+DROP POLICY IF EXISTS "Authenticated users can create invoice items" ON invoice_items;
+DROP POLICY IF EXISTS "Authenticated users can read activity logs" ON activity_logs;
+DROP POLICY IF EXISTS "Authenticated users can create activity logs" ON activity_logs;
 
 -- RLS Policies untuk table baru
 CREATE POLICY "Authenticated users can read returns" ON returns

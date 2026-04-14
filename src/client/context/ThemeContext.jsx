@@ -114,11 +114,15 @@ export const themes = {
     bg: 'from-gray-50 via-white to-gray-50',
     accent: 'slate',
     primary: 'from-slate-700 to-slate-800',
-    text: 'text-black',
+    text: 'text-gray-900',
     textMuted: 'text-gray-700',
     border: 'border-gray-300',
     hover: 'hover:bg-gray-100',
     ring: 'focus:ring-slate-400',
+    label: 'text-gray-800',
+    input: 'text-gray-900 bg-white border-gray-300',
+    button: 'text-gray-900',
+    card: 'bg-white border-gray-200',
   },
 };
 
@@ -131,10 +135,15 @@ export function ThemeProvider({ children }) {
   useEffect(() => {
     localStorage.setItem('appTheme', currentTheme.id);
     // Set CSS variables for theme colors
-    document.documentElement.style.setProperty('--theme-text', 
-      currentTheme.id === 'light' ? '#000000' : '#e0f2fe');
-    document.documentElement.style.setProperty('--theme-text-muted',
-      currentTheme.id === 'light' ? '#4b5563' : '#06b6d4');
+    if (currentTheme.id === 'light') {
+      document.documentElement.style.setProperty('--theme-text', '#111827');
+      document.documentElement.style.setProperty('--theme-text-muted', '#4b5563');
+      document.body.classList.add('light-theme');
+    } else {
+      document.documentElement.style.setProperty('--theme-text', '#e0f2fe');
+      document.documentElement.style.setProperty('--theme-text-muted', '#06b6d4');
+      document.body.classList.remove('light-theme');
+    }
   }, [currentTheme]);
 
   const changeTheme = (themeId) => {
@@ -157,3 +166,28 @@ export function useTheme() {
   }
   return context;
 }
+
+// Helper functions for common text colors
+export const getTextColorClass = (theme) => {
+  return theme.id === 'light' ? 'text-gray-900' : 'text-white';
+};
+
+export const getLabelColorClass = (theme) => {
+  return theme.id === 'light' ? 'text-gray-800' : 'text-cyan-300';
+};
+
+export const getMutedTextColorClass = (theme) => {
+  return theme.id === 'light' ? 'text-gray-600' : 'text-cyan-300/70';
+};
+
+export const getInputColorClass = (theme) => {
+  return theme.id === 'light' ? 'text-gray-900 bg-white border-gray-300' : 'text-white';
+};
+
+export const getHoverClass = (theme) => {
+  return theme.id === 'light' ? 'hover:bg-gray-100' : 'hover:bg-cyan-500/10';
+};
+
+export const getBorderColorClass = (theme) => {
+  return theme.id === 'light' ? 'border-gray-300' : 'border-cyan-500/20';
+};

@@ -3,6 +3,13 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
+  base: process.env.VITE_ELECTRON === 'true' ? '/' : '/mmn/',
+  publicDir: 'src/public',
+  build: {
+    outDir: 'dist',
+    sourcemap: false,
+    minify: 'terser',
+  },
   server: {
     port: 3000,
     proxy: {

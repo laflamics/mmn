@@ -27,14 +27,29 @@ export default function Login() {
         return;
       }
 
+      // Fetch user profile from users table
+      const { data: userProfile, error: profileError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', data.user.id)
+        .single();
+
+      if (profileError) {
+        console.error('Error fetching user profile:', profileError);
+        setError('User profile not found. Please contact administrator.');
+        return;
+      }
+
       const user = {
-        id: data.user.id,
-        email: data.user.email,
-        name: data.user.user_metadata?.name || data.user.email,
-        role: data.user.user_metadata?.role || 'user',
+        id: userProfile.id,
+        email: userProfile.email,
+        name: userProfile.name,
+        role_id: userProfile.role_id,
+        department: userProfile.department,
+        is_active: userProfile.is_active,
       };
 
-      login(user, data.session.access_token);
+      login(user);
       navigate('/');
     } catch (err) {
       setError(err.message || 'Login failed');
@@ -55,7 +70,7 @@ export default function Login() {
       <div className="relative z-10 w-full max-w-md">
         <div className="glass rounded-2xl p-8 shadow-2xl neon-glow">
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold gradient-text mb-2">ERP System</h1>
+            <h1 className="text-4xl font-bold gradient-text mb-2">PT Mina Mandiri Nusantara</h1>
             <p className="text-cyan-300/80 text-sm">Modern Business Management</p>
           </div>
 

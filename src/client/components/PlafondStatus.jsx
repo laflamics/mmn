@@ -1,6 +1,18 @@
 export default function PlafondStatus({ status }) {
   if (!status) return null;
 
+  const formatCurrency = (value) => {
+    if (value === null || value === undefined) return 'Rp 0';
+    const num = parseFloat(value);
+    if (isNaN(num)) return 'Rp 0';
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(num);
+  };
+
   const getStatusColor = () => {
     if (status.isBlocked) return 'bg-red-500/30 text-red-200';
     if (status.isWarning) return 'bg-yellow-500/30 text-yellow-200';
@@ -20,14 +32,14 @@ export default function PlafondStatus({ status }) {
           {status.isBlocked ? '🚫 Plafond Limit Reached' : status.isWarning ? '⚠️ Warning: High Usage' : '✓ Plafond Available'}
         </p>
         <p className="text-xs mt-1">
-          ${status.used.toLocaleString()} / ${status.limit.toLocaleString()} ({status.usagePercent}%)
+          {formatCurrency(status.used)} / {formatCurrency(status.limit)} ({status.usagePercent}%)
         </p>
       </div>
 
       <div className="space-y-1">
         <div className="flex justify-between text-xs text-slate-400">
           <span>Usage</span>
-          <span>${status.remaining.toLocaleString()} remaining</span>
+          <span>{formatCurrency(status.remaining)} remaining</span>
         </div>
         <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
           <div

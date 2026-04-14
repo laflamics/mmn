@@ -1,9 +1,17 @@
 import { useState } from 'react';
+import { formatDate, formatCurrency } from '../lib/formatters';
 import Dialog from '../components/Dialog';
+import FilterBar from '../components/FilterBar';
 
 export default function Waste() {
   const [waste, setWaste] = useState([]);
   const [showDialog, setShowDialog] = useState(false);
+  const [pageSize, setPageSize] = useState(20);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [dateFilter, setDateFilter] = useState('all');
+  const [customerTypeFilter, setCustomerTypeFilter] = useState('all');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   return (
     <div>
@@ -16,6 +24,22 @@ export default function Waste() {
           + Record Waste
         </button>
       </div>
+
+      <FilterBar
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        dateFilter={dateFilter}
+        setDateFilter={setDateFilter}
+        customerTypeFilter={customerTypeFilter}
+        setCustomerTypeFilter={setCustomerTypeFilter}
+        pageSize={pageSize}
+        setPageSize={setPageSize}
+        startDate={startDate}
+        setStartDate={setStartDate}
+        endDate={endDate}
+        setEndDate={setEndDate}
+        searchPlaceholder="Product or Category"
+      />
 
       <Dialog
         isOpen={showDialog}
@@ -61,7 +85,7 @@ export default function Waste() {
         </div>
         <div className="glass rounded-xl p-6">
           <p className="text-slate-400 text-sm font-medium">Total Waste Value</p>
-          <p className="text-3xl font-bold text-red-400 mt-2">$0.00</p>
+          <p className="text-3xl font-bold text-red-400 mt-2">Rp 0</p>
         </div>
         <div className="glass rounded-xl p-6">
           <p className="text-slate-400 text-sm font-medium">This Month</p>
@@ -89,10 +113,10 @@ export default function Waste() {
             <tbody>
               {waste.map((item) => (
                 <tr key={item.id} className="border-b border-slate-700 hover:bg-white/5 transition-colors">
-                  <td className="px-6 py-4 text-sm text-slate-400">{new Date(item.date).toLocaleDateString()}</td>
+                  <td className="px-6 py-4 text-sm text-slate-400">{formatDate(item.date)}</td>
                   <td className="px-6 py-4 text-sm text-slate-200">{item.product_name}</td>
                   <td className="px-6 py-4 text-sm text-slate-200">{item.quantity}</td>
-                  <td className="px-6 py-4 text-sm text-red-400">${item.value}</td>
+                  <td className="px-6 py-4 text-sm text-red-400">{formatCurrency(item.value)}</td>
                   <td className="px-6 py-4 text-sm text-slate-400">{item.reason}</td>
                 </tr>
               ))}
