@@ -66,12 +66,34 @@ export default function AppUpdater() {
 
     // Android / web: check GitHub Releases API
     try {
-      const res = await fetch(
-        `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`
+      // Try multiple endpoints for better reliability
+      let res = await fetch(
+        `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`,
+        {
+          headers: {
+            'Accept': 'application/vnd.github.v3+json',
+            'User-Agent': 'MMN-ERP-App'
+          }
+        }
       );
-      if (!res.ok) throw new Error('Gagal fetch GitHub releases');
+
+      // If rate limited, try without auth
+      if (res.status === 403) {
+        res = await fetch(
+          `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`
+        );
+      }
+
+      if (!res.ok) {
+        throw new Error(`GitHub API error: ${res.status} ${res.statusText}`);
+      }
+
       const release = await res.json();
       const remoteVer = release.tag_name;
+
+      if (!remoteVer) {
+        throw new Error('Tidak ada release terbaru di GitHub');
+      }
 
       if (isNewer(currentVersion, remoteVer)) {
         setLatestVersion(remoteVer);
@@ -80,14 +102,19 @@ export default function AppUpdater() {
         // Find APK asset URL
         if (isAndroid) {
           const apkAsset = release.assets?.find(a => a.name.endsWith('.apk'));
-          if (apkAsset) setApkUrl(apkAsset.browser_download_url);
+          if (apkAsset) {
+            setApkUrl(apkAsset.browser_download_url);
+          } else {
+            throw new Error('APK tidak ditemukan di release terbaru');
+          }
         }
       } else {
         setState('latest');
       }
     } catch (err) {
       setState('error');
-      setErrorMsg(err.message);
+      setErrorMsg(err.message || 'Gagal memeriksa update');
+      console.error('Update check error:', err);
     }
   };
 

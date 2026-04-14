@@ -58,10 +58,10 @@ export default function Layout({ children }) {
       >
         <div className={`px-4 md:px-6 py-0.5 flex items-center justify-center sticky top-0 bg-gradient-to-b ${currentTheme.bg.split(' ')[0]} to-transparent`}>
           {sidebarOpen && (
-            <img src="/mmn/mmn.png" alt="MMN Logo" className="h-32 md:h-36 object-contain" />
+            <img src="/mmn.png" alt="MMN Logo" className="h-32 md:h-36 object-contain" />
           )}
           {!sidebarOpen && (
-            <img src="/mmn/mmn.png" alt="MMN Logo" className="h-24 md:h-28 object-contain" />
+            <img src="/mmn.png" alt="MMN Logo" className="h-24 md:h-28 object-contain" />
           )}
         </div>
 
@@ -89,7 +89,7 @@ export default function Layout({ children }) {
           />
           <div className="fixed left-0 top-0 h-screen w-64 glass-lg border-r border-cyan-500/20 overflow-y-auto z-50 md:hidden flex flex-col">
             <div className="px-4 py-2 flex items-center justify-between sticky top-0 bg-gradient-to-b from-slate-900 to-transparent">
-              <img src="/mmn/mmn.png" alt="MMN Logo" className="h-20 object-contain" />
+              <img src="/mmn.png" alt="MMN Logo" className="h-20 object-contain" />
               <button
                 onClick={() => setSidebarOpen(false)}
                 className="p-1 rounded-lg hover:bg-slate-700 text-slate-300"
