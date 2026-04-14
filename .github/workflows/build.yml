@@ -4,18 +4,20 @@ on:
   push:
     branches: [main]
     tags: ['v*']
-  workflow_dispatch:   # bisa trigger manual dari GitHub UI
+  workflow_dispatch:
 
 jobs:
   # ─── Windows Electron installer ────────────────────────────────────────────
   build-windows:
     runs-on: windows-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
       - name: Install dependencies
@@ -26,8 +28,16 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          # Publish to GitHub Releases only when triggered by a version tag
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npm run electron:pack
+        run: |
+          if ("${{ github.ref }}" -like "refs/tags/v*") {
+            npm run electron:build
+            electron-builder --win --x64 --publish always
+          } else {
+            npm run electron:pack
+          }
+        shell: pwsh
 
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
@@ -39,12 +49,14 @@ jobs:
   # ─── Android APK via Capacitor ─────────────────────────────────────────────
   build-android:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'       # Capacitor v8 requires Node >=22
           cache: 'npm'
 
       - uses: actions/setup-java@v4
@@ -55,11 +67,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build web assets (Android mode — base = /)
+      - name: Build web assets
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-          VITE_ELECTRON: 'true'   # pakai base='/' supaya Capacitor bisa load
+          VITE_ELECTRON: 'true'
         run: npm run build
 
       - name: Sync Capacitor
@@ -78,30 +90,10 @@ jobs:
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
 
-  # ─── Create GitHub Release (hanya kalau push tag v*) ───────────────────────
-  release:
-    needs: [build-windows, build-android]
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
-    permissions:
-      contents: write
-    steps:
-      - name: Download Windows artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: windows-installer
-          path: artifacts/windows
-
-      - name: Download Android artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: android-apk
-          path: artifacts/android
-
-      - name: Create Release
+      # Upload APK to GitHub Release (only for version tags)
+      - name: Upload APK to Release
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            artifacts/windows/**/*.exe
-            artifacts/android/*.apk
-          generate_release_notes: true
+          files: android/app/build/outputs/apk/debug/app-debug.apk
+          tag_name: ${{ github.ref_name }}
