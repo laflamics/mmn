@@ -11,3 +11,6 @@ majalahabg/
 datamaster/
 masterdata/
 release/
+android/.gradle/
+android/app/build/
+android/build/
