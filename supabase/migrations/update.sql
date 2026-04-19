@@ -14,3 +14,11 @@ ON CONFLICT (version) DO UPDATE SET updated_at = CURRENT_TIMESTAMP;
 INSERT INTO app_versions (version, description, apk_url, release_notes) 
 VALUES ('1.0.6', 'MMN ERP v1.0.6', 'https://github.com/laflamics/mmn/releases/download/v1.0.6/mmn-v1.0.6.apk', 'Fixed signing for smooth updates + floating notification')
 ON CONFLICT (version) DO UPDATE SET updated_at = CURRENT_TIMESTAMP;
+
+INSERT INTO app_versions (version, description, apk_url, release_notes) 
+VALUES ('1.0.8', 'MMN ERP v1.0.8', 'https://github.com/laflamics/mmn/releases/download/v1.0.8/mmn-v1.0.8.apk', 'AR Summary mobile layout fixes')
+ON CONFLICT (version) DO UPDATE SET updated_at = CURRENT_TIMESTAMP;
+
+INSERT INTO app_versions (version, description, apk_url, release_notes) 
+VALUES ('1.0.9', 'MMN ERP v1.0.9', 'https://github.com/laflamics/mmn/releases/download/v1.0.9/mmn-v1.0.9.apk', 'Latest updates and improvements')
+ON CONFLICT (version) DO UPDATE SET updated_at = CURRENT_TIMESTAMP;
