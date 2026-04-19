@@ -14,7 +14,7 @@
     "electron:dev": "concurrently \"npm run dev:server\" \"npm run dev:client\" \"wait-on http://localhost:3000 && cross-env NODE_ENV=development electron .\"",
     "electron:build": "cross-env VITE_ELECTRON=true vite build",
     "electron:pack": "npm run electron:build && electron-builder --win --x64 --publish never",
-    "android:build": "cross-env VITE_ELECTRON=true vite build && npx cap sync android && cd android && ./gradlew assembleDebug",
+    "android:build": "cross-env VITE_ELECTRON=true VITE_APP_VERSION=$(node -p \"require('./package.json').version\") vite build && npx cap sync android && cd android && ./gradlew assembleDebug -PAPP_VERSION=$(node -p \"require('../package.json').version\")",
     "android:open": "npx cap open android"
   },
   "dependencies": {
