@@ -67,11 +67,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Set app version
+        id: app-version
+        run: |
+          echo "VERSION=$(node -p \"require('./package.json').version\")" >> $GITHUB_OUTPUT
+
       - name: Build web assets
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
           VITE_ELECTRON: 'true'
+          VITE_APP_VERSION: ${{ steps.app-version.outputs.VERSION }}
         run: npm run build
 
       - name: Sync Capacitor
@@ -81,7 +87,7 @@ jobs:
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew assembleDebug -PAPP_VERSION=${{ steps.app-version.outputs.VERSION }}
 
       - name: Upload Android APK artifact
         uses: actions/upload-artifact@v4

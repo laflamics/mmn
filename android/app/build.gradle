@@ -7,8 +7,13 @@ android {
         applicationId "com.mmn.erp"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        def appVersion = project.hasProperty('APP_VERSION') ? project.property('APP_VERSION') : "1.0.0"
+        def versionSegments = appVersion.tokenize('.').collect { it.toInteger() }
+        while (versionSegments.size() < 3) {
+            versionSegments << 0
+        }
+        versionCode versionSegments[0] * 10000 + versionSegments[1] * 100 + versionSegments[2]
+        versionName appVersion
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
