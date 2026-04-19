@@ -1,6 +1,6 @@
 {
   "name": "elegant-erp",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Modern, elegant ERP system for B2B & B2C operations",
   "type": "module",
   "main": "electron/main.cjs",
