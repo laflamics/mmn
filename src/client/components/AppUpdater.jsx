@@ -1,7 +1,5 @@
 import { useState, useEffect } from 'react';
-
-const GITHUB_OWNER = 'laflamics';
-const GITHUB_REPO  = 'mmn';
+import { supabase } from '../lib/supabase';
 
 // Detect runtime platform
 const isElectron  = typeof window !== 'undefined' && !!window.electronAPI;
@@ -64,49 +62,32 @@ export default function AppUpdater() {
       return;
     }
 
-    // Android / web: check GitHub Releases API
+    // Android / web: check Supabase for latest version
     try {
-      // Try multiple endpoints for better reliability
-      let res = await fetch(
-        `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`,
-        {
-          headers: {
-            'Accept': 'application/vnd.github.v3+json',
-            'User-Agent': 'MMN-ERP-App'
-          }
-        }
-      );
+      const { data, error } = await supabase
+        .from('app_versions')
+        .select('version, apk_url, description')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
 
-      // If rate limited, try without auth
-      if (res.status === 403) {
-        res = await fetch(
-          `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`
-        );
+      if (error) {
+        throw new Error(`Gagal mengambil data versi: ${error.message}`);
       }
 
-      if (!res.ok) {
-        throw new Error(`GitHub API error: ${res.status} ${res.statusText}`);
+      if (!data || !data.version) {
+        throw new Error('Tidak ada versi terbaru di database');
       }
 
-      const release = await res.json();
-      const remoteVer = release.tag_name;
-
-      if (!remoteVer) {
-        throw new Error('Tidak ada release terbaru di GitHub');
-      }
+      const remoteVer = data.version;
 
       if (isNewer(currentVersion, remoteVer)) {
         setLatestVersion(remoteVer);
         setState('available');
 
-        // Find APK asset URL
-        if (isAndroid) {
-          const apkAsset = release.assets?.find(a => a.name.endsWith('.apk'));
-          if (apkAsset) {
-            setApkUrl(apkAsset.browser_download_url);
-          } else {
-            throw new Error('APK tidak ditemukan di release terbaru');
-          }
+        // Set APK download URL from Supabase
+        if (isAndroid && data.apk_url) {
+          setApkUrl(data.apk_url);
         }
       } else {
         setState('latest');
