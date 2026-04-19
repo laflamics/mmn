@@ -230,12 +230,12 @@ export default function ARSummary() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-4xl font-bold gradient-text">AR Summary per Customer</h1>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+        <h1 className="text-3xl sm:text-4xl font-bold gradient-text">AR Summary per Customer</h1>
         <button
           onClick={exportToExcel}
           disabled={data.length === 0}
-          className="px-6 py-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-lg transition-smooth font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full sm:w-auto px-6 py-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-lg transition-smooth font-medium disabled:opacity-50 disabled:cursor-not-allowed"
         >
           📊 Export Excel
         </button>
@@ -298,7 +298,60 @@ export default function ARSummary() {
                 className="p-4 cursor-pointer hover:bg-white/5 transition-colors"
                 onClick={() => handleExpandCustomer(customer.customer_id)}
               >
-                <div className="grid grid-cols-12 gap-4 items-center">
+                {/* Mobile Layout */}
+                <div className="block md:hidden">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex-1">
+                      <p className="text-white font-semibold text-lg">{customer.customer_name}</p>
+                      <p className="text-slate-400 text-xs mt-1">
+                        <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
+                          customer.customer_type === 'B2B' ? 'bg-blue-500/30 text-blue-200' : 'bg-green-500/30 text-green-200'
+                        }`}>
+                          {customer.customer_type}
+                        </span>
+                        <span className="ml-2">Sales: {customer.sales_person}</span>
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-slate-400">Outstanding</p>
+                      <p className="text-xl font-bold text-orange-400">{formatCurrency(customer.total_outstanding)}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4 mt-3">
+                    <div>
+                      <p className="text-xs text-slate-400">Invoices</p>
+                      <p className="text-lg font-semibold text-white">{customer.total_invoices} invoices</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-400">Oldest Due</p>
+                      <p className="text-sm font-medium text-red-400">{formatDate(customer.oldest_due_date)}</p>
+                      <p className="text-xs text-slate-500">
+                        {Math.floor((new Date() - new Date(customer.oldest_due_date)) / (1000 * 60 * 60 * 24))} days overdue
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-2 mt-4">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRecordPayment(customer);
+                      }}
+                      className="flex-1 px-3 py-2 bg-green-500/30 text-green-200 hover:bg-green-500/50 rounded-lg transition-smooth font-medium text-sm"
+                    >
+                      💰 Pay
+                    </button>
+                    <button
+                      className="px-3 py-2 bg-blue-500/30 text-blue-200 hover:bg-blue-500/50 rounded-lg transition-smooth font-medium text-sm"
+                    >
+                      {expandedCustomer === customer.customer_id ? '▼' : '▶'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Desktop Layout */}
+                <div className="hidden md:grid md:grid-cols-12 gap-4 items-center">
                   <div className="col-span-1 text-center">
                     <span className="text-2xl font-bold text-slate-500">#{idx + 1}</span>
                   </div>
@@ -367,7 +420,62 @@ export default function ARSummary() {
                               : 'bg-slate-700/30 border-slate-600'
                           }`}
                         >
-                          <div className="grid grid-cols-12 gap-4 items-center text-sm">
+                          {/* Mobile Layout */}
+                          <div className="block md:hidden">
+                            {invIdx === 0 && (
+                              <div className="mb-2">
+                                <span className="px-2 py-1 bg-red-500/30 text-red-200 rounded text-xs font-semibold">
+                                  OLDEST
+                                </span>
+                              </div>
+                            )}
+                            
+                            <div className="grid grid-cols-2 gap-3 mb-3">
+                              <div>
+                                <p className="text-slate-400 text-xs">Invoice #</p>
+                                <p className="text-white font-medium">{invoice.invoice_number}</p>
+                              </div>
+                              <div>
+                                <p className="text-slate-400 text-xs">Amount</p>
+                                <p className="text-white font-semibold">{formatCurrency(invoice.total_amount)}</p>
+                              </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-3 mb-3">
+                              <div>
+                                <p className="text-slate-400 text-xs">Invoice Date</p>
+                                <p className="text-slate-300">{formatDate(invoice.invoice_date)}</p>
+                              </div>
+                              <div>
+                                <p className="text-slate-400 text-xs">Due Date</p>
+                                <p className="text-red-400 font-medium">{formatDate(invoice.due_date)}</p>
+                              </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-3 gap-3">
+                              <div>
+                                <p className="text-slate-400 text-xs">Paid</p>
+                                <p className="text-green-400">{formatCurrency(invoice.paid_amount)}</p>
+                              </div>
+                              <div>
+                                <p className="text-slate-400 text-xs">Outstanding</p>
+                                <p className="text-orange-400 font-bold">{formatCurrency(invoice.outstanding)}</p>
+                              </div>
+                              <div>
+                                <p className="text-slate-400 text-xs">Status</p>
+                                <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                                  invoice.status === 'paid' ? 'bg-green-500/30 text-green-200' :
+                                  invoice.status === 'overpaid' ? 'bg-blue-500/30 text-blue-200' :
+                                  'bg-orange-500/30 text-orange-200'
+                                }`}>
+                                  {invoice.status}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Desktop Layout */}
+                          <div className="hidden md:grid md:grid-cols-12 gap-4 items-center text-sm">
                             <div className="col-span-1">
                               {invIdx === 0 && (
                                 <span className="px-2 py-1 bg-red-500/30 text-red-200 rounded text-xs font-semibold">

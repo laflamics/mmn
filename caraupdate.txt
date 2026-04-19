@@ -1,0 +1,7 @@
+git add package.json && git commit -m 'chore: bump version to 1.0.7'
+git push origin main && git tag v1.0.7 && git push origin v1.0.7
+
+INSERT INTO app_versions (version, description, apk_url, release_notes) 
+VALUES ('1.0.7', 'MMN ERP v1.0.7', 'https://github.com/laflamics/mmn/releases/download/v1.0.7/mmn-v1.0.7.apk', 'Version 1.0.7 with floating notification feature')
+ON CONFLICT (version) DO UPDATE SET updated_at = CURRENT_TIMESTAMP;
+
