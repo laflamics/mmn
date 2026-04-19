@@ -4,6 +4,7 @@ import { cacheManager } from '../lib/cache';
 import { formatDate, formatCurrency } from '../lib/formatters';
 import Table from '../components/Table';
 import Dialog from '../components/Dialog';
+import NumberInput from '../components/NumberInput';
 
 export default function DatabaseServer() {
   const [tables, setTables] = useState([]);
@@ -319,14 +320,14 @@ export default function DatabaseServer() {
                   <option value="false">No</option>
                 </select>
               ) : typeof value === 'number' ? (
-                <input
-                  type="number"
+                <NumberInput
                   value={value}
-                  onChange={(e) => setEditFormData({
+                  onChange={(val) => setEditFormData({
                     ...editFormData,
-                    [key]: parseFloat(e.target.value) || 0
+                    [key]: parseFloat(val) || 0
                   })}
                   className="w-full px-3 py-1.5 glass-sm rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-400 text-xs"
+                  allowDecimal={true}
                 />
               ) : (
                 <textarea

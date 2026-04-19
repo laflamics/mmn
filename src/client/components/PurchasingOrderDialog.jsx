@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { formatCurrency } from '../lib/formatters';
 import Dialog from './Dialog';
+import NumberInput from './NumberInput';
 
 export default function PurchasingOrderDialog({ isOpen, onClose, onSubmit, editingOrder, preFilledReminder }) {
   const [suppliers, setSuppliers] = useState([]);
@@ -489,21 +490,20 @@ export default function PurchasingOrderDialog({ isOpen, onClose, onSubmit, editi
                       </option>
                     ))}
                   </select>
-                  <input
-                    type="number"
+                  <NumberInput
                     value={item.quantity}
-                    onChange={(e) => handleItemChange(idx, 'quantity', e.target.value)}
+                    onChange={(val) => handleItemChange(idx, 'quantity', val)}
                     className="w-16 px-2 py-1 glass-sm rounded text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
                     placeholder="Qty"
-                    min="1"
+                    min={1}
+                    allowDecimal={true}
                   />
-                  <input
-                    type="number"
+                  <NumberInput
                     value={item.unit_price}
-                    onChange={(e) => handleItemChange(idx, 'unit_price', e.target.value)}
+                    onChange={(val) => handleItemChange(idx, 'unit_price', val)}
                     className="w-20 px-2 py-1 glass-sm rounded text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
                     placeholder="Price"
-                    step="0.01"
+                    allowDecimal={true}
                   />
                   <span className="text-xs text-slate-400 w-20 text-right">
                     {formatCurrency(item.quantity * item.unit_price)}
@@ -606,12 +606,12 @@ export default function PurchasingOrderDialog({ isOpen, onClose, onSubmit, editi
           {paymentType === 'TOP' && (
             <div>
               <label className="block text-xs font-medium text-slate-400 mb-2">TOP Days</label>
-              <input
-                type="number"
+              <NumberInput
                 value={topDays}
-                onChange={(e) => setTopDays(parseInt(e.target.value) || 30)}
+                onChange={(val) => setTopDays(parseInt(val) || 30)}
                 className="w-full px-4 py-2 glass-sm rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-400 text-xs"
-                min="1"
+                allowDecimal={false}
+                min={1}
               />
             </div>
           )}

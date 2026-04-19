@@ -5,6 +5,7 @@ import { formatCurrency, formatDate } from '../lib/formatters';
 import { supabase } from '../lib/supabase';
 import Dialog from '../components/Dialog';
 import Table from '../components/Table';
+import NumberInput from '../components/NumberInput';
 
 export default function Products() {
   const [products, setProducts] = useState([]);
@@ -261,24 +262,22 @@ export default function Products() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-slate-400 mb-2">Unit Price</label>
-              <input
-                type="number"
+              <NumberInput
                 placeholder="Unit price"
                 value={formData.unit_price}
-                onChange={(e) => setFormData({ ...formData, unit_price: e.target.value })}
+                onChange={(val) => setFormData({ ...formData, unit_price: val })}
                 className="w-full px-4 py-2 glass-sm rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                step="0.01"
+                allowDecimal={true}
               />
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-400 mb-2">Cost Price</label>
-              <input
-                type="number"
+              <NumberInput
                 placeholder="Cost price"
                 value={formData.cost_price}
-                onChange={(e) => setFormData({ ...formData, cost_price: e.target.value })}
+                onChange={(val) => setFormData({ ...formData, cost_price: val })}
                 className="w-full px-4 py-2 glass-sm rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                step="0.01"
+                allowDecimal={true}
               />
             </div>
           </div>
@@ -288,46 +287,42 @@ export default function Products() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-2">B2C Locco (Zak)</label>
-                <input
-                  type="number"
+                <NumberInput
                   placeholder="B2C Locco price per zak"
                   value={formData.b2c_locco_price_zak}
-                  onChange={(e) => setFormData({ ...formData, b2c_locco_price_zak: e.target.value })}
+                  onChange={(val) => setFormData({ ...formData, b2c_locco_price_zak: val })}
                   className="w-full px-4 py-2 glass-sm rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                  step="0.01"
+                  allowDecimal={true}
                 />
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-2">B2C Franco (Zak)</label>
-                <input
-                  type="number"
+                <NumberInput
                   placeholder="B2C Franco price per zak"
                   value={formData.b2c_franco_price_zak}
-                  onChange={(e) => setFormData({ ...formData, b2c_franco_price_zak: e.target.value })}
+                  onChange={(val) => setFormData({ ...formData, b2c_franco_price_zak: val })}
                   className="w-full px-4 py-2 glass-sm rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                  step="0.01"
+                  allowDecimal={true}
                 />
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-2">B2C Cash</label>
-                <input
-                  type="number"
+                <NumberInput
                   placeholder="B2C Cash price"
                   value={formData.b2c_cash}
-                  onChange={(e) => setFormData({ ...formData, b2c_cash: e.target.value })}
+                  onChange={(val) => setFormData({ ...formData, b2c_cash: val })}
                   className="w-full px-4 py-2 glass-sm rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                  step="0.01"
+                  allowDecimal={true}
                 />
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-2">B2C TOP 30</label>
-                <input
-                  type="number"
+                <NumberInput
                   placeholder="B2C TOP 30 price"
                   value={formData.b2c_top_30}
-                  onChange={(e) => setFormData({ ...formData, b2c_top_30: e.target.value })}
+                  onChange={(val) => setFormData({ ...formData, b2c_top_30: val })}
                   className="w-full px-4 py-2 glass-sm rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                  step="0.01"
+                  allowDecimal={true}
                 />
               </div>
             </div>
@@ -337,13 +332,12 @@ export default function Products() {
             <h3 className="text-sm font-semibold text-slate-300 mb-3">B2B Pricing</h3>
             <div>
               <label className="block text-xs font-medium text-slate-400 mb-2">B2B Default Price</label>
-              <input
-                type="number"
+              <NumberInput
                 placeholder="B2B default price"
                 value={formData.b2b_default_price}
-                onChange={(e) => setFormData({ ...formData, b2b_default_price: e.target.value })}
+                onChange={(val) => setFormData({ ...formData, b2b_default_price: val })}
                 className="w-full px-4 py-2 glass-sm rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                step="0.01"
+                allowDecimal={true}
               />
             </div>
           </div>

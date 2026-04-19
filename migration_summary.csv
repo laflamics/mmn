@@ -1,0 +1,42 @@
+RINGKASAN MIGRASI DATA - MMN ERP,,,,
+Tanggal,14 April 2026,,,
+Sumber Data,/home/zelwar/Data2/mmn/masterdata/,,,
+,,,,
+SECTION,METRIK,CSV SUMBER,DATABASE,KETERANGAN
+,,,,
+--- AR / PENJUALAN ---,,,,
+Sales Orders,Total Order,773,773,Sesuai
+Sales Orders,Total Line Item (SKU),956,956,Sesuai
+Customers,Jumlah Customer,53,55,+2 kemungkinan tambah manual
+Products,Jumlah SKU,13,27,DB lebih banyak karena termasuk SKU dari purchase
+Invoices,Total Nilai,Rp 18.522.175.000,Rp 18.522.175.000,Sesuai
+Invoices,Terbayar (Invoice Paid Amount),Rp 13.682.514.000,Rp 13.682.514.000,Sesuai
+Invoices,Outstanding (Sisa Tagihan),Rp 4.839.661.000,Rp 4.839.661.000,Sesuai
+Invoices,Status Paid,465,465,Sesuai
+Invoices,Status Partial,229,229,Sesuai
+Invoices,Status Sent / Belum Bayar,79,79,Sesuai
+AR Payments,Jumlah Record,567,567,Sesuai
+AR Payments,Total Cash Masuk,Rp 13.771.881.000,Rp 13.771.881.000,Sesuai
+,,,,
+--- AP / PEMBELIAN ---,,,,
+Purchase Orders,Total PO,231,231,Sesuai
+Purchase Orders,Status Lunas,165,165,Sesuai
+Purchase Orders,Status Belum Lunas,66,66,Sesuai
+Purchase Orders,Total Nilai PO,Rp 19.371.884.825,Rp 19.371.884.825,Sesuai
+PO Items,Total Line Item (SKU),412,412,Sesuai
+Stock Receives,Jumlah Penerimaan Barang,231,231,Sesuai (1 SR per PO)
+AP Payments,Jumlah Record,167,167,Sesuai (hanya PO yg ada pembayaran)
+AP Payments,Total Terbayar,Rp 13.716.509.275,Rp 13.716.509.275,Sesuai
+AP Payments,Total Potongan / Diskon,-,Rp 129.452.550,11 PO lunas dengan potongan
+AP Outstanding,Sisa Hutang (setelah potongan),Rp 5.655.375.550,Rp 5.525.923.000,Selisih = nilai potongan (benar)
+,,,,
+--- PERBAIKAN DATA YANG DILAKUKAN ---,,,,
+No,Masalah,Dampak,Jumlah Record,Status
+1,Invoice total_amount multi-item order salah (hanya ambil row pertama),Total AR salah Rp 15.5B → harusnya Rp 18.5B,175 orders,Fixed
+2,Invoice paid_amount & status salah untuk multi-item orders,Status paid/partial/sent tidak akurat,134 invoices,Fixed
+3,AR payment amount salah untuk multi-item orders,Cash terbayar tidak sesuai CSV,127 records,Fixed
+4,AR payments — paid_amount = 0 (tidak diisi saat import),AR Terbayar tercatat Rp 0 di semua payment AR,567 records,Fixed
+5,AP payments — paid_amount = 0 (tidak diisi saat import),AP Terbayar tercatat Rp 0 di semua payment AP,167 records,Fixed
+6,AP payments — discount/potongan tidak diisi,Outstanding AP terlalu besar,11 records,Fixed
+7,Purchase Orders — top_days semua null,Jatuh tempo tidak bisa dihitung,231 POs,Fixed
+8,APaging.jsx query dari tabel payments (bukan purchase_orders),64 PO belum bayar tidak muncul di AP Aging,64 POs,Fixed

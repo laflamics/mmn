@@ -5,6 +5,7 @@ import { formatCurrency, formatDate, formatNumber } from '../lib/formatters';
 import Table from '../components/Table';
 import Dialog from '../components/Dialog';
 import ImportSODialog from '../components/ImportSODialog';
+import NumberInput from '../components/NumberInput';
 
 export default function Inventory() {
   const [inventory, setInventory] = useState([]);
@@ -783,12 +784,11 @@ export default function Inventory() {
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-1">Adjustment Quantity *</label>
-            <input
-              type="number"
+            <NumberInput
               value={adjustmentQty}
-              onChange={(e) => setAdjustmentQty(parseFloat(e.target.value) || 0)}
+              onChange={(val) => setAdjustmentQty(parseFloat(val) || 0)}
               placeholder="Enter quantity to add/subtract"
-              step="0.01"
+              allowDecimal={true}
               className="w-full px-3 py-1.5 glass-sm rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-green-400 text-xs"
             />
             <p className="text-xs text-slate-400 mt-1">Positive = add stock, Negative = reduce stock</p>

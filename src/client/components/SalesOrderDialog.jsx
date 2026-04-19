@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { formatCurrency, formatDate } from '../lib/formatters';
 import { calculateTotal } from '../lib/api';
 import Dialog from './Dialog';
+import NumberInput from './NumberInput';
 import InvoiceTemplateRegular from '../../pdf/InvoiceTemplateRegular';
 
 export default function SalesOrderDialog({ isOpen, onClose, onSubmit, editingOrder }) {
@@ -832,23 +833,21 @@ export default function SalesOrderDialog({ isOpen, onClose, onSubmit, editingOrd
                           </div>
                         )}
                       </div>
-                      <input
-                        type="number"
+                      <NumberInput
                         value={item.quantity}
-                        onChange={(e) => handleUpdateItem(idx, 'quantity', parseFloat(e.target.value) || 0)}
+                        onChange={(val) => handleUpdateItem(idx, 'quantity', parseFloat(val) || 0)}
                         placeholder="Qty"
-                        step="0.01"
+                        allowDecimal={true}
                         className="col-span-2 text-xs px-2 py-1 glass-sm rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
                       />
                       <div className="col-span-2 text-xs px-2 py-1 glass-sm rounded text-slate-300 bg-slate-800/50 flex items-center justify-center">
                         {item.unit_type || '-'}
                       </div>
-                      <input
-                        type="number"
+                      <NumberInput
                         value={item.unit_price}
-                        onChange={(e) => handleUpdateItem(idx, 'unit_price', parseFloat(e.target.value) || 0)}
+                        onChange={(val) => handleUpdateItem(idx, 'unit_price', parseFloat(val) || 0)}
                         placeholder="Price"
-                        step="0.01"
+                        allowDecimal={true}
                         className="col-span-2 text-xs px-2 py-1 glass-sm rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
                       />
                     </div>
@@ -913,12 +912,11 @@ export default function SalesOrderDialog({ isOpen, onClose, onSubmit, editingOrd
 
                     {/* Total Price Input */}
                     <div className="grid grid-cols-12 gap-1">
-                      <input
-                        type="number"
+                      <NumberInput
                         value={item.total_price}
-                        onChange={(e) => handleUpdateItem(idx, 'total_price', parseFloat(e.target.value) || 0)}
+                        onChange={(val) => handleUpdateItem(idx, 'total_price', parseFloat(val) || 0)}
                         placeholder="Total"
-                        step="0.01"
+                        allowDecimal={true}
                         className="col-span-10 text-xs px-2 py-1 glass-sm rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
                       />
                       <button
@@ -939,32 +937,32 @@ export default function SalesOrderDialog({ isOpen, onClose, onSubmit, editingOrd
           <div className="grid grid-cols-4 gap-2">
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1">Tax (%)</label>
-              <input
-                type="number"
+              <NumberInput
                 value={tax}
-                onChange={(e) => setTax(parseFloat(e.target.value) || 0)}
+                onChange={(val) => setTax(parseFloat(val) || 0)}
                 className="w-full text-xs px-2 py-1 glass-sm rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
-                step="0.01"
+                allowDecimal={true}
+                placeholder="0"
               />
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1">Discount (%)</label>
-              <input
-                type="number"
+              <NumberInput
                 value={discount}
-                onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
+                onChange={(val) => setDiscount(parseFloat(val) || 0)}
                 className="w-full text-xs px-2 py-1 glass-sm rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
-                step="0.01"
+                allowDecimal={true}
+                placeholder="0"
               />
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1">Saving (Rp)</label>
-              <input
-                type="number"
+              <NumberInput
                 value={saving}
-                onChange={(e) => setSaving(parseFloat(e.target.value) || 0)}
+                onChange={(val) => setSaving(parseFloat(val) || 0)}
                 className="w-full text-xs px-2 py-1 glass-sm rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
-                step="1000"
+                placeholder="0"
+                allowDecimal={false}
               />
             </div>
             <div>
@@ -985,11 +983,11 @@ export default function SalesOrderDialog({ isOpen, onClose, onSubmit, editingOrd
           {paymentType === 'TOP' && (
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1">TOP Days</label>
-              <input
-                type="number"
+              <NumberInput
                 value={topDays}
-                onChange={(e) => setTopDays(parseInt(e.target.value) || 30)}
+                onChange={(val) => setTopDays(parseInt(val) || 30)}
                 className="w-full text-xs px-2 py-1 glass-sm rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+                allowDecimal={false}
               />
             </div>
           )}

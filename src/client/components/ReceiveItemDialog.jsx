@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { uploadDocument } from '../lib/storage';
 import Dialog from './Dialog';
+import NumberInput from './NumberInput';
 
 export default function ReceiveItemDialog({ isOpen, onClose, onSubmit, purchaseOrder }) {
   const [items, setItems] = useState([]);
@@ -223,12 +224,12 @@ export default function ReceiveItemDialog({ isOpen, onClose, onSubmit, purchaseO
                   <div className="flex gap-2 items-end">
                     <div className="flex-1">
                       <label className="block text-xs text-slate-400 mb-1">Received</label>
-                      <input
-                        type="number"
+                      <NumberInput
                         value={item.quantity_received}
-                        onChange={(e) => handleQuantityChange(idx, e.target.value)}
+                        onChange={(val) => handleQuantityChange(idx, val)}
                         className="w-full px-3 py-2 glass-sm rounded text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
-                        min="0"
+                        allowDecimal={false}
+                        min={0}
                       />
                     </div>
                     <div className="text-xs">

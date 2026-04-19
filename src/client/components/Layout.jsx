@@ -30,6 +30,7 @@ export default function Layout({ children }) {
     { label: 'Returns', path: '/returns', icon: '↩️' },
     { label: 'Invoices', path: '/invoices', icon: '📄' },
     { label: 'Payments', path: '/payments', icon: '💳' },
+    { label: 'AR Summary', path: '/ar-summary', icon: '💵' },
     { label: 'AR Aging', path: '/ar-aging', icon: '📈' },
     { label: 'AP Aging', path: '/ap-aging', icon: '📉' },
     { label: 'Reports', path: '/reports', icon: '📊' },

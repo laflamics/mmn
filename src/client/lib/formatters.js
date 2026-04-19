@@ -51,10 +51,13 @@ export const getCurrentJakartaDate = () => {
   return jakartaDate.toISOString();
 };
 
-// Format number with 2 decimal places
-export const formatNumber = (value) => {
-  if (value === null || value === undefined) return '0.00';
+// Format number with thousand separator and optional decimal places
+export const formatNumber = (value, decimals = 2) => {
+  if (value === null || value === undefined || value === '') return '0';
   const num = parseFloat(value);
-  if (isNaN(num)) return '0.00';
-  return num.toFixed(2);
+  if (isNaN(num)) return '0';
+  return num.toLocaleString('id-ID', { 
+    minimumFractionDigits: decimals, 
+    maximumFractionDigits: decimals 
+  });
 };

@@ -7,6 +7,7 @@ import Table from '../components/Table';
 import Dialog from '../components/Dialog';
 import RecordPaymentDialog from '../components/RecordPaymentDialog';
 import UploadProofDialog from '../components/UploadProofDialog';
+import NumberInput from '../components/NumberInput';
 
 export default function Payments() {
   const [payments, setPayments] = useState([]);
@@ -393,13 +394,12 @@ export default function Payments() {
 
           <div>
             <label className="block text-xs font-medium text-slate-400 mb-2">Amount</label>
-            <input
-              type="number"
+            <NumberInput
               value={formData.amount}
-              onChange={(e) => setFormData({...formData, amount: e.target.value})}
+              onChange={(val) => setFormData({...formData, amount: val})}
               className="w-full px-4 py-2 glass-sm rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-400"
               placeholder="0.00"
-              step="0.01"
+              allowDecimal={true}
               required
             />
           </div>

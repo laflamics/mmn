@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { uploadDocument } from '../lib/storage';
 import { formatCurrency } from '../lib/formatters';
 import Dialog from './Dialog';
+import NumberInput from './NumberInput';
 
 export default function RecordInvoicePaymentDialog({ isOpen, onClose, onSubmit, invoice }) {
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
@@ -132,13 +133,12 @@ export default function RecordInvoicePaymentDialog({ isOpen, onClose, onSubmit, 
         {/* Paid Amount */}
         <div>
           <label className="block text-xs font-medium text-slate-400 mb-2">Amount to Pay</label>
-          <input
-            type="number"
+          <NumberInput
             value={paidAmount}
-            onChange={(e) => setPaidAmount(parseFloat(e.target.value) || 0)}
+            onChange={(val) => setPaidAmount(parseFloat(val) || 0)}
             className="w-full px-4 py-2 glass-sm rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-400 text-xs"
             placeholder="0.00"
-            step="0.01"
+            allowDecimal={true}
             max={remainingAmount}
           />
           <p className="text-xs text-slate-400 mt-1">Max: {formatCurrency(remainingAmount)}</p>

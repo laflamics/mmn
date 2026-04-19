@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { formatDate, formatCurrency } from '../lib/formatters';
 import Dialog from '../components/Dialog';
 import FilterBar from '../components/FilterBar';
+import NumberInput from '../components/NumberInput';
 
 export default function Returns() {
   const [returns, setReturns] = useState([]);
@@ -63,11 +64,10 @@ export default function Returns() {
             type="date"
             className="w-full px-4 py-2 glass-sm rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
           />
-          <input
-            type="number"
+          <NumberInput
             placeholder="Amount"
             className="w-full px-4 py-2 glass-sm rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-400"
-            step="0.01"
+            allowDecimal={true}
           />
           <textarea
             placeholder="Reason for return"

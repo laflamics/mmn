@@ -15,6 +15,7 @@ import Warehouse from './pages/Warehouse';
 import Returns from './pages/Returns';
 import Invoices from './pages/Invoices';
 import Payments from './pages/Payments';
+import ARSummary from './pages/ARSummary';
 import ARaging from './pages/ARaging';
 import APaging from './pages/APaging';
 import Reports from './pages/Reports';
@@ -66,6 +67,7 @@ export default function App() {
                 <Route path="/returns" element={<Returns />} />
                 <Route path="/invoices" element={<Invoices />} />
                 <Route path="/payments" element={<Payments />} />
+                <Route path="/ar-summary" element={<ARSummary />} />
                 <Route path="/ar-aging" element={<ARaging />} />
                 <Route path="/ap-aging" element={<APaging />} />
                 <Route path="/reports" element={<Reports />} />

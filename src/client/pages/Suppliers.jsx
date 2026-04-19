@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase';
 import { uploadDocument, deleteDocument } from '../lib/storage';
 import Dialog from '../components/Dialog';
 import Table from '../components/Table';
+import NumberInput from '../components/NumberInput';
 
 export default function Suppliers() {
   const [suppliers, setSuppliers] = useState([]);
@@ -303,13 +304,12 @@ export default function Suppliers() {
 
           <div>
             <label className="block text-xs font-medium text-slate-400 mb-2">Plafond Limit</label>
-            <input
-              type="number"
+            <NumberInput
               placeholder="Plafond limit"
               value={formData.plafond_limit}
-              onChange={(e) => setFormData({ ...formData, plafond_limit: e.target.value })}
+              onChange={(val) => setFormData({ ...formData, plafond_limit: val })}
               className="w-full px-4 py-2 glass-sm rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-400"
-              step="0.01"
+              allowDecimal={true}
             />
           </div>
 
