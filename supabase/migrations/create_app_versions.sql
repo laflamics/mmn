@@ -13,19 +13,26 @@ CREATE TABLE IF NOT EXISTS app_versions (
 -- Enable RLS
 ALTER TABLE app_versions ENABLE ROW LEVEL SECURITY;
 
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Allow public read app versions" ON app_versions;
+DROP POLICY IF EXISTS "Allow authenticated update app versions" ON app_versions;
+DROP POLICY IF EXISTS "Allow authenticated write app versions" ON app_versions;
+DROP POLICY IF EXISTS "Allow service role manage app versions" ON app_versions;
+DROP POLICY IF EXISTS "Allow service role update app versions" ON app_versions;
+
 -- Policy: Allow anyone to read (for app updates)
 CREATE POLICY "Allow public read app versions" 
   ON app_versions FOR SELECT 
   USING (true);
 
--- Policy: Allow only authenticated users to insert/update
-CREATE POLICY "Allow authenticated update app versions" 
+-- Policy: Allow service role (GitHub Actions) to insert/update
+CREATE POLICY "Allow service role manage app versions" 
   ON app_versions FOR INSERT 
-  WITH CHECK (auth.role() = 'authenticated');
+  WITH CHECK (true);
 
-CREATE POLICY "Allow authenticated write app versions" 
+CREATE POLICY "Allow service role update app versions" 
   ON app_versions FOR UPDATE 
-  USING (auth.role() = 'authenticated');
+  USING (true);
 
 -- Insert initial version if not exists
 INSERT INTO app_versions (version, description, apk_url, release_notes)

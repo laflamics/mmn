@@ -107,3 +107,22 @@ jobs:
         with:
           files: android/app/build/outputs/apk/debug/mmn-v${{ steps.app-version.outputs.VERSION }}.apk
           tag_name: ${{ github.ref_name }}
+
+      # Auto-update Supabase app_versions table
+      - name: Update Supabase app version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          VERSION=${{ steps.app-version.outputs.VERSION }}
+          APK_URL="https://github.com/laflamics/mmn/releases/download/v${VERSION}/mmn-v${VERSION}.apk"
+          
+          curl -X POST \
+            "https://${{ secrets.SUPABASE_URL }}/rest/v1/app_versions" \
+            -H "apikey: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"version\": \"${VERSION}\",
+              \"apk_url\": \"${APK_URL}\",
+              \"description\": \"MMN ERP v${VERSION}\",
+              \"release_notes\": \"Build from GitHub Actions\"
+            }" \
+            --fail || echo "Note: Version already exists in database (may be expected)"
