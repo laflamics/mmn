@@ -70,7 +70,8 @@ jobs:
       - name: Set app version
         id: app-version
         run: |
-          echo "VERSION=$(node -p \"require('./package.json').version\")" >> $GITHUB_OUTPUT
+          VERSION=$(node -p "require(\"./package.json\").version")
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Build web assets
         env:
