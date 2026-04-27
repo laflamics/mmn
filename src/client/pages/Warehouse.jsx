@@ -43,6 +43,12 @@ export default function Warehouse() {
 
   const [selectedSO, setSelectedSO] = useState(null);
   const [usedSOIds, setUsedSOIds] = useState([]);
+  const [soSearch, setSoSearch] = useState('');
+  const [showSODropdown, setShowSODropdown] = useState(false);
+  const [dnItems, setDnItems] = useState([]);
+  const [allProducts, setAllProducts] = useState([]);
+  const [showAddProduct, setShowAddProduct] = useState(false);
+  const [addProductSearch, setAddProductSearch] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -113,6 +119,13 @@ export default function Warehouse() {
 
       setDeliveryNotes(dnData || []);
       setSalesOrders(soData || []);
+
+      // Fetch all products for "add product" feature
+      const { data: prodData } = await supabase
+        .from('products')
+        .select('id, name, sku')
+        .order('name', { ascending: true });
+      setAllProducts(prodData || []);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -120,25 +133,40 @@ export default function Warehouse() {
     }
   };
 
-  const handleSOChange = (soId) => {
+  const handleSOSelect = (so) => {
     try {
-      setFormData({ ...formData, sales_order_id: soId });
-
-      const so = salesOrders.find(s => s.id == soId);
-      if (so) {
-        setSelectedSO(so);
-        // Auto-set delivery_date from SO order_date
-        const deliveryDate = so.order_date ? so.order_date.split('T')[0] : new Date().toISOString().split('T')[0];
-        setFormData(prev => ({
-          ...prev,
-          delivery_date: deliveryDate,
-          notes: `Delivery for ${so.customers?.name || 'Customer'}`
-        }));
-      }
+      setFormData(prev => ({
+        ...prev,
+        sales_order_id: so.id,
+        delivery_date: so.order_date ? so.order_date.split('T')[0] : new Date().toISOString().split('T')[0],
+        notes: `Delivery for ${so.customers?.name || 'Customer'}`
+      }));
+      setSelectedSO(so);
+      setSoSearch(`${so.order_number} - ${so.customers?.name || ''}`);
+      setShowSODropdown(false);
+      // Pre-populate DN items from SO items
+      const items = (so.sales_order_items || []).map(item => ({
+        product_id: item.product_id,
+        product_name: item.products?.name || '-',
+        product_sku: item.products?.sku || '-',
+        so_quantity: item.quantity,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        checked: true
+      }));
+      setDnItems(items);
     } catch (err) {
       setError(err.message);
     }
   };
+
+  const filteredSOs = salesOrders
+    .filter(so => !usedSOIds.includes(so.id) || (editingNote && so.id === editingNote.sales_order_id))
+    .filter(so => {
+      if (!soSearch || (selectedSO && soSearch === `${so.order_number} - ${so.customers?.name || ''}`)) return true;
+      const q = soSearch.toLowerCase();
+      return so.order_number?.toLowerCase().includes(q) || so.customers?.name?.toLowerCase().includes(q);
+    });
 
   const handleViewItems = (note) => {
     setSelectedItems(note.delivery_note_items || []);
@@ -147,7 +175,6 @@ export default function Warehouse() {
 
   const handleEditClick = (note) => {
     setEditingNote(note);
-    // Ensure delivery_date is in YYYY-MM-DD format for input[type="date"]
     const deliveryDate = note.delivery_date ? note.delivery_date.split('T')[0] : new Date().toISOString().split('T')[0];
     setFormData({
       sales_order_id: note.sales_order_id,
@@ -159,6 +186,36 @@ export default function Warehouse() {
     });
     const so = salesOrders.find(s => s.id == note.sales_order_id);
     setSelectedSO(so || null);
+    setSoSearch(so ? `${so.order_number} - ${so.customers?.name || ''}` : '');
+    // Populate items from existing DN items or SO items
+    const existingItems = note.delivery_note_items || [];
+    if (existingItems.length > 0) {
+      const soItems = so?.sales_order_items || [];
+      const items = existingItems.map(item => {
+        const soItem = soItems.find(si => si.product_id === item.product_id);
+        return {
+          product_id: item.product_id,
+          product_name: item.products?.name || '-',
+          product_sku: item.products?.sku || '-',
+          so_quantity: soItem?.quantity || item.quantity,
+          quantity: item.quantity,
+          unit_price: soItem?.unit_price || 0,
+          checked: true
+        };
+      });
+      setDnItems(items);
+    } else if (so) {
+      const items = (so.sales_order_items || []).map(item => ({
+        product_id: item.product_id,
+        product_name: item.products?.name || '-',
+        product_sku: item.products?.sku || '-',
+        so_quantity: item.quantity,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        checked: true
+      }));
+      setDnItems(items);
+    }
     setShowDialog(true);
   };
 
@@ -371,6 +428,24 @@ export default function Warehouse() {
 
         if (updateErr) throw updateErr;
         noteId = editingNote.id;
+
+        // Delete old items and re-insert updated ones
+        await supabase.from('delivery_note_items').delete().eq('delivery_note_id', noteId);
+
+        const updatedItems = dnItems
+          .filter(item => item.checked && item.quantity > 0)
+          .map(item => ({
+            delivery_note_id: noteId,
+            product_id: item.product_id,
+            quantity: item.quantity
+          }));
+
+        if (updatedItems.length > 0) {
+          const { error: itemsErr } = await supabase
+            .from('delivery_note_items')
+            .insert(updatedItems);
+          if (itemsErr) throw itemsErr;
+        }
       } else {
         // Create new note with auto-generated DN number
         const dnNumber = `DN-${Date.now()}`;
@@ -385,12 +460,14 @@ export default function Warehouse() {
         if (insertErr) throw insertErr;
         noteId = newNote[0].id;
 
-        // Create delivery note items from SO items
-        const items = (selectedSO.sales_order_items || []).map(item => ({
-          delivery_note_id: noteId,
-          product_id: item.product_id,
-          quantity: item.quantity
-        }));
+        // Create delivery note items from dnItems (user-edited)
+        const items = dnItems
+          .filter(item => item.checked && item.quantity > 0)
+          .map(item => ({
+            delivery_note_id: noteId,
+            product_id: item.product_id,
+            quantity: item.quantity
+          }));
 
         if (items.length > 0) {
           const { error: itemsErr } = await supabase
@@ -405,6 +482,10 @@ export default function Warehouse() {
       setShowDialog(false);
       setEditingNote(null);
       setSelectedSO(null);
+      setSoSearch('');
+      setDnItems([]);
+      setShowAddProduct(false);
+      setAddProductSearch('');
       setFormData({
         sales_order_id: '',
         delivery_date: new Date().toISOString().split('T')[0],
@@ -515,6 +596,10 @@ export default function Warehouse() {
           onClick={() => {
             setEditingNote(null);
             setSelectedSO(null);
+            setSoSearch('');
+            setDnItems([]);
+            setShowAddProduct(false);
+            setAddProductSearch('');
             setFormData({
               sales_order_id: '',
               delivery_date: new Date().toISOString().split('T')[0],
@@ -556,6 +641,10 @@ export default function Warehouse() {
           setShowDialog(false);
           setEditingNote(null);
           setSelectedSO(null);
+          setSoSearch('');
+          setDnItems([]);
+          setShowAddProduct(false);
+          setAddProductSearch('');
         }}
         onSubmit={handleSubmit}
         submitLabel={editingNote ? "Update" : "Create"}
@@ -564,30 +653,191 @@ export default function Warehouse() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-medium text-slate-400 mb-2">Sales Order *</label>
-            <select
-              value={formData.sales_order_id}
-              onChange={(e) => handleSOChange(e.target.value)}
-              className="w-full px-4 py-2 glass-sm rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
-              required
-            >
-              <option className="bg-slate-800" value="">Select Sales Order</option>
-              {salesOrders
-                .filter(so => !usedSOIds.includes(so.id))
-                .map(so => (
-                  <option key={so.id} className="bg-slate-800" value={so.id}>
-                    {so.order_number} - {so.customers?.name} ({so.sales_order_items?.length || 0} items)
-                  </option>
-                ))}
-            </select>
+            <div className="relative">
+              <input
+                type="text"
+                value={soSearch}
+                onChange={(e) => {
+                  setSoSearch(e.target.value);
+                  setShowSODropdown(true);
+                  if (!e.target.value) {
+                    setSelectedSO(null);
+                    setDnItems([]);
+                    setFormData(prev => ({ ...prev, sales_order_id: '' }));
+                  }
+                }}
+                onFocus={() => setShowSODropdown(true)}
+                onBlur={() => setTimeout(() => setShowSODropdown(false), 200)}
+                placeholder="Cari SO number atau nama customer..."
+                className="w-full px-4 py-2 glass-sm rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              />
+              {showSODropdown && filteredSOs.length > 0 && (
+                <div className="absolute z-50 w-full mt-1 bg-slate-800 border border-slate-600 rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                  {filteredSOs.map(so => (
+                    <div
+                      key={so.id}
+                      onMouseDown={() => handleSOSelect(so)}
+                      className="px-4 py-2 hover:bg-slate-700 cursor-pointer text-sm text-white border-b border-slate-700 last:border-0"
+                    >
+                      <span className="font-semibold text-blue-300">{so.order_number}</span>
+                      <span className="text-slate-300 ml-2">- {so.customers?.name}</span>
+                      <span className="text-slate-500 ml-2 text-xs">({so.sales_order_items?.length || 0} items)</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {showSODropdown && soSearch && filteredSOs.length === 0 && (
+                <div className="absolute z-50 w-full mt-1 bg-slate-800 border border-slate-600 rounded-lg shadow-xl px-4 py-3 text-slate-400 text-sm">
+                  Tidak ada SO ditemukan
+                </div>
+              )}
+            </div>
           </div>
 
           {selectedSO && (
             <div className="bg-slate-700/50 p-3 rounded-lg border border-slate-600">
-              <p className="text-xs text-slate-400">Selected SO Details</p>
+              <p className="text-xs text-slate-400">Selected SO</p>
               <p className="text-white font-semibold text-sm">{selectedSO.customers?.name}</p>
-              <p className="text-xs text-slate-300">Items: {selectedSO.sales_order_items?.length || 0}</p>
+              <p className="text-xs text-slate-300">{selectedSO.sales_order_items?.length || 0} items</p>
             </div>
           )}
+
+          {dnItems.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-medium text-slate-400">
+                  Products to Deliver
+                  <span className="ml-2 text-blue-400">
+                    ({dnItems.filter(i => i.checked).length}/{dnItems.length} dipilih)
+                  </span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const allChecked = dnItems.every(i => i.checked);
+                    setDnItems(prev => prev.map(i => ({ ...i, checked: !allChecked })));
+                  }}
+                  className="text-xs text-slate-400 hover:text-white underline"
+                >
+                  {dnItems.every(i => i.checked) ? 'Uncheck All' : 'Check All'}
+                </button>
+              </div>
+              <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                {dnItems.map((item, idx) => (
+                  <div
+                    key={idx}
+                    className={`border rounded-lg px-3 py-2 flex items-center gap-3 transition-colors ${
+                      item.checked
+                        ? 'bg-slate-700/50 border-slate-600'
+                        : 'bg-slate-800/30 border-slate-700/50 opacity-60'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={item.checked}
+                      onChange={(e) => setDnItems(prev => prev.map((it, i) => i === idx ? { ...it, checked: e.target.checked } : it))}
+                      className="w-4 h-4 accent-blue-500 shrink-0 cursor-pointer"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white text-sm font-medium truncate">{item.product_name}</p>
+                      <p className="text-slate-400 text-xs">{item.product_sku}</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {item.so_quantity != null && (
+                        <span className="text-slate-500 text-xs">SO: {item.so_quantity}</span>
+                      )}
+                      <input
+                        type="number"
+                        min="0"
+                        value={item.quantity}
+                        disabled={!item.checked}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value) || 0;
+                          setDnItems(prev => prev.map((it, i) => i === idx ? { ...it, quantity: val } : it));
+                        }}
+                        className="w-20 px-2 py-1 glass-sm rounded text-white text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:opacity-40"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setDnItems(prev => prev.filter((_, i) => i !== idx))}
+                        className="text-red-400 hover:text-red-300 text-lg leading-none px-1"
+                        title="Hapus item"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-slate-500 mt-1">Centang item yang akan dikirim. Uncheck atau hapus untuk tidak mengirim.</p>
+            </div>
+          )}
+
+          {/* Add Product */}
+          <div>
+            <button
+              type="button"
+              onClick={() => { setShowAddProduct(p => !p); setAddProductSearch(''); }}
+              className="text-xs text-blue-400 hover:text-blue-300 underline"
+            >
+              + Tambah Product
+            </button>
+            {showAddProduct && (
+              <div className="mt-2 relative">
+                <input
+                  type="text"
+                  value={addProductSearch}
+                  onChange={(e) => setAddProductSearch(e.target.value)}
+                  placeholder="Cari nama atau SKU produk..."
+                  className="w-full px-3 py-2 glass-sm rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  autoFocus
+                />
+                {addProductSearch && (
+                  <div className="absolute z-50 w-full mt-1 bg-slate-800 border border-slate-600 rounded-lg shadow-xl max-h-40 overflow-y-auto">
+                    {allProducts
+                      .filter(p => {
+                        const q = addProductSearch.toLowerCase();
+                        return p.name?.toLowerCase().includes(q) || p.sku?.toLowerCase().includes(q);
+                      })
+                      .slice(0, 20)
+                      .map(p => (
+                        <div
+                          key={p.id}
+                          onMouseDown={() => {
+                            const alreadyExists = dnItems.some(i => i.product_id === p.id);
+                            if (alreadyExists) {
+                              // just check it if unchecked
+                              setDnItems(prev => prev.map(i => i.product_id === p.id ? { ...i, checked: true } : i));
+                            } else {
+                              setDnItems(prev => [...prev, {
+                                product_id: p.id,
+                                product_name: p.name,
+                                product_sku: p.sku || '-',
+                                so_quantity: null,
+                                quantity: 1,
+                                checked: true
+                              }]);
+                            }
+                            setAddProductSearch('');
+                            setShowAddProduct(false);
+                          }}
+                          className="px-3 py-2 hover:bg-slate-700 cursor-pointer text-sm text-white border-b border-slate-700 last:border-0"
+                        >
+                          <span className="font-medium">{p.name}</span>
+                          {p.sku && <span className="text-slate-400 ml-2 text-xs">{p.sku}</span>}
+                        </div>
+                      ))}
+                    {allProducts.filter(p => {
+                      const q = addProductSearch.toLowerCase();
+                      return p.name?.toLowerCase().includes(q) || p.sku?.toLowerCase().includes(q);
+                    }).length === 0 && (
+                      <div className="px-3 py-2 text-slate-400 text-sm">Produk tidak ditemukan</div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           <div>
             <label className="block text-xs font-medium text-slate-400 mb-2">Delivery Date *</label>
@@ -708,10 +958,10 @@ export default function Warehouse() {
                 deliveryNote={previewNote}
                 items={previewNote.delivery_note_items || []}
                 company={{
-                  name: 'PT. BINSIS INDONESIA',
-                  address: 'Jl. Merdeka No. 123, Jakarta 12345',
-                  phone: '+62 21 1234 5678',
-                  email: 'info@binsis.co.id'
+                  name: 'PT. MINA MANDIRI NUSANTARA',
+                  address: 'Jl. DR. Cipto Mangunkusumo No.178, Kesambi, Kec. Kesambi, Kota Cirebon, Jawa Barat 45153',
+                  phone: '+62 877 7715 0768',
+                  email: 'ikurniawan8@gmail.com'
                 }}
               />
             </div>
